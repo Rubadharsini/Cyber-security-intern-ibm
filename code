@@ -1,1 +1,55 @@
+from PIL import Image
 
+def text_to_binary(text):
+    binary_message = ''.join(format(ord(char), '08b') for char in text)
+    return binary_message
+
+def binary_to_text(binary_message):
+    text = ''.join([chr(int(binary_message[i:i+8], 2)) for i in range(0, len(binary_message), 8)])
+    return text
+
+def hide_message(image_path, output_path, message):
+    img = Image.open('/content/output_image_with_hidden_message.png')
+
+    binary_message = text_to_binary(message)
+
+    if len(binary_message) > img.size[0] * img.size[1] * 3:
+        raise ValueError("Message is too long to be hidden in the image.")
+
+    data_index = 0
+    for i in range(img.size[0]):
+        for j in range(img.size[1]):
+            pixel = list(img.getpixel((i, j)))
+            for color_channel in range(3):
+                if data_index < len(binary_message):
+                    pixel[color_channel] = pixel[color_channel] & ~1 | int(binary_message[data_index])
+                    data_index += 1
+            img.putpixel((i, j), tuple(pixel))
+
+    img.save('/content/output_image_with_hidden_message.png')
+
+def reveal_message(encoded_image_path):
+    img = Image.open(encoded_image_path)
+
+    binary_message = ""
+    for i in range(img.size[0]):
+        for j in range(img.size[1]):
+            pixel = img.getpixel((i, j))
+            for color_channel in range(3):
+                binary_message += str(pixel[color_channel] & 1)
+
+    hidden_message = binary_to_text(binary_message)
+    return hidden_message
+
+if _name_ == "_main_":
+    # Hide Message
+    image_path = "/content/output_image_with_hidden_message.png"
+    output_path = "/content/output_image_with_hidden_message.png"
+    message_to_hide = "Hello, this is a hidden message!"
+
+    hide_message(image_path, output_path, message_to_hide)
+    print(f"Message hidden in '{output_path}'")
+
+    # Reveal Message
+    revealed_message = reveal_message(output_path)
+    print(f"Revealed Message: {revealed_message}")
